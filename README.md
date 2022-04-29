@@ -50,7 +50,7 @@ Another way to think of reveal skipping is that it's a way to store data inside 
 
 # Isn't this game a big pile of chain spam?
 
-Yes, don't actually do this on bitcoin's mainnet. The game is supposed to be educational. By playing the game on bitcoin's testnet, you might learn have a "lightbulb moment" about commiting to arbitrary data like a chess move in a bitcoin pubkey. And if you can commit to a chess move, maybe you can commit to more important things, too.
+Yes, don't actually do this on bitcoin's mainnet. The game is supposed to be educational. By playing the game on bitcoin's testnet, you might learn something. Scroll down to "Lessons to learn from this" for some examples.
 
 # Limitations
 
