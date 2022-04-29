@@ -7,7 +7,7 @@ In [this blog post](https://rubin.io/bitcoin/2021/12/14/advent-17/) Jeremy Rubin
 
 # Testnet faucet
 
-To play, you'll need some testnet coins. Get some here: [https://bitcoinfaucet.uo1.net/](https://bitcoinfaucet.uo1.net/)
+To play, you'll need some testnet coins. Get some here: [https://bitcoinfaucet.uo1.net/](https://bitcoinfaucet.uo1.net/) About 10,000 should be enough for a full game of chess.
 
 # How it works
 
@@ -61,6 +61,8 @@ If you play too quickly or with too many tabs open you'll run into the rate limi
 The browser logic treats a move as final as soon as it enters the mempool and it won't update the board if the move gets ejected from the mempool. This means it's possible to double-spend a chess move, which I think is a hilarious concept. Maybe someday I'll add a button for that, just for fun.
 
 There is not currently any support for the lightning network but I did make the game lightning compatible so all it needs is for someone to write a plugin for a lightning wallet to make it work. If you played it in a lightning channel, you wouldn't have any public proof of your moves or your opponent's moves, but each move would be signed and committed to inside a raw bitcoin transaction which you could keep in your wallet's database. Maybe someday.
+
+I haven't implemented very much "game-ending" logic. There are supposed to be several ways to end the game, namely, you can forfeit by moving your coins to an address that does not commit to a valid chess move given your current position, you can checkmate your opponent or get checkmated, and you can take more than 50 moves. But the only one of those that has any actual implementation logic is the forfeit option -- your opponent's browser will say you forfeited if you withdraw your coins. If you actually manage to checkmate your opponent, the game will not do anything special, and assuming you withdraw your coins after that your opponent's browser will say you forfeited because all it knows is you moved your coins, it doesn't know the game already ended. Maybe I'll fix that someday.
 
 # Lessons to learn from this
 
