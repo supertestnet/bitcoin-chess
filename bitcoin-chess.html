@@ -1,0 +1,606 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <title>Bitcoin Chess</title>
+  <base href="../" />
+  <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
+</head>
+<body>
+
+<div id="myBoard" style="display: inline-block; max-width: 800px; width: 100%; vertical-align: top;"></div>
+<div id="timer-info" style="display: inline-block; max-width: 800px; width: 100%; vertical-align: top; display: none;">
+  <h2 id="timer-label" align="center">Next state update</h2>
+  <h2 id="timer-line" align="center"><span id="timer">60</span> seconds</h2>
+</div>
+<p id="cookie-instructions">Clear this page's cookies before starting a new game. This is important if you've ever played on this page before.</p>
+<p><button type="button" id="clear-cookies" name="clear-cookies">Clear cookies</button></p>
+<p id="start-instructions">If you are playing as Black, enter your opponent’s pubkey and then click Submit. Otherwise, just click Submit.</p>
+<p id="my-address-label" style="display: none;">Your bitcoin address</p>
+<p><input type="text" id="my-address" name="my-address" disabled style="background-color: #cccccc; display: none; width: 100%;" /></p>
+<p id="my-pubkey-label" style="display: none;">Your pubkey</p>
+<p><input type="text" id="my-pubkey" name="my-pubkey" disabled style="background-color: #cccccc; display: none; width: 100%;" /></p>
+<p id="opponents-pubkey-label">Your opponent's pubkey</p>
+<p><input type="text" placeholder="opponent's pubkey" id="opponents-pubkey" name="opponents-pubkey" style="width: 100%;" /></p>
+<p><button type="button" id="submit" name="submit">Submit</button></p>
+<p><button type="button" id="submit2" name="submit2" style="display: none;">Submit</button></p>
+<p id="withdraw-instructions" style="display: none;">To withdraw your money, put an address into the btc address field and hit Withdraw. If you withdraw your money before the game is over you forfeit.</p>
+<p><input type="text" placeholder="btc address" id="withdraw" name="withdraw" style="width: 100%; display: none;" /></p>
+<p><button type="button" id="submit3" name="submit3" style="display: none;">Withdraw</button></p>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js" integrity="sha384-s3XgLpvmHyscVpijnseAmye819Ee3yaGa8NxstkJVyA6nuDFjt59u1QvuEl/mecz" crossorigin="anonymous"></script>
+<script src="https://bitcoincore.tech/apps/bitcoinjs-ui/lib/bitcoinjs-lib.js"></script>
+<script src="https://bundle.run/noble-secp256k1@1.2.14"></script>
+<script src="https://bundle.run/ecies-lite@1.1.3"></script>
+<script src="https://bundle.run/bip39@3.0.4"></script>
+<script src="https://bundle.run/bip32@2.0.6"></script>
+<script src="https://bundle.run/buffer@6.0.3"></script>
+<script>
+    var board = Chessboard( 'myBoard' );
+</script>
+<script>
+  function makePrivkey() {
+    var rand = new Uint8Array( 32 );
+    var privkey = buffer.Buffer.from( window.crypto.getRandomValues( rand ) ).toString( "hex" );
+    return privkey;
+  }
+
+  function getCompressedPubkeyHexFromPrivkeyHex( privkeyhex ) {
+    return bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( privkeyhex, "hex" ), { network: bitcoinjs.networks.testnet } ).publicKey.toString( "hex" );
+  }
+
+  document.getElementById( "submit" ).addEventListener( "click", function() {
+    var color = "white";
+    if ( document.getElementById( "opponents-pubkey" ).value ) {
+      color = "black";
+      sessionStorage[ "mycolor" ] = "b";
+      var blackkey = {}
+      blackkey[ "privkey" ] = makePrivkey();
+      blackkey[ "pubkey" ] = getCompressedPubkeyHexFromPrivkeyHex( blackkey[ "privkey" ] );
+      sessionStorage[ "blackkey" ] = JSON.stringify( blackkey );
+      document.getElementById( "my-pubkey" ).value = JSON.parse( sessionStorage[ "blackkey" ] )[ "pubkey" ];
+      var whitekey = {}
+      whitekey[ "privkey" ] = "";
+      whitekey[ "pubkey" ] = document.getElementById( "opponents-pubkey" ).value;
+      sessionStorage[ "whitekey" ] = JSON.stringify( whitekey );
+      var tweakchain = [];
+      tweakchain.push( whitekey );
+      tweakchain.push( blackkey );
+      sessionStorage[ "tweakchain" ] = JSON.stringify( tweakchain );
+      loopAndCheckAddress( getNativeSegwitAddressFromPubkeyHex( whitekey[ "pubkey" ] ), 0 );
+    } else {
+      sessionStorage[ "mycolor" ] = "w";
+      var whitekey = {}
+      whitekey[ "privkey" ] = makePrivkey();
+      whitekey[ "pubkey" ] = getCompressedPubkeyHexFromPrivkeyHex( whitekey[ "privkey" ] );
+      sessionStorage[ "whitekey" ] = JSON.stringify( whitekey );
+      var tweakchain = [];
+      tweakchain.push( whitekey );
+      sessionStorage[ "tweakchain" ] = JSON.stringify( tweakchain );
+      document.getElementById( "my-pubkey" ).value = JSON.parse( sessionStorage[ "whitekey" ] )[ "pubkey" ];
+      document.getElementById( "opponents-pubkey" ).placeholder = "enter your opponent's pubkey here when you have it and click submit";
+      document.getElementById( "submit" ).style.display = "none";
+      document.getElementById( "submit2" ).style.display = "block";
+    }
+    document.getElementById( "my-address" ).value = getNativeSegwitAddressFromPubkeyHex( document.getElementById( "my-pubkey" ).value );
+    document.getElementById( "my-pubkey-label" ).style.display = "block";
+    document.getElementById( "my-pubkey" ).style.display = "block";
+    document.getElementById( "my-address-label" ).style.display = "block";
+    document.getElementById( "my-address" ).style.display = "block";
+    var startposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    window.chess = new Chess( startposition );
+    var chess = window.chess;
+    var config = {
+      orientation: color,
+      position: chess.fen()
+    }
+    Chessboard( 'myBoard', config );
+    if ( sessionStorage[ "whitekey" ] ) {
+      console.log( JSON.parse( sessionStorage[ "whitekey" ] ) );      
+    }
+    if ( sessionStorage[ "blackkey" ] ) {
+      console.log( JSON.parse( sessionStorage[ "blackkey" ] ) );      
+    }
+    sessionStorage[ "lastknownchessposition" ] = startposition;
+    prepBoard();
+  });
+
+  document.getElementById( "submit2" ).addEventListener( "click", function() {
+    var blackkey = {}
+    blackkey[ "privkey" ] = "";
+    blackkey[ "pubkey" ] = document.getElementById( "opponents-pubkey" ).value;
+    loopAndCheckAddress( getNativeSegwitAddressFromPubkeyHex( blackkey[ "pubkey" ] ), 0 );
+    sessionStorage[ "blackkey" ] = JSON.stringify( blackkey );
+    var tweakchain = JSON.parse( sessionStorage[ "tweakchain" ] );
+    tweakchain.push( blackkey );
+    sessionStorage[ "tweakchain" ] = JSON.stringify( tweakchain );
+    if ( JSON.parse( sessionStorage[ "blackkey" ] ) ) {
+      console.log( JSON.parse( sessionStorage[ "blackkey" ] ) );      
+    }
+  });
+
+  document.getElementById( "submit3" ).addEventListener( "click", function() {
+    var tweakchain = JSON.parse( sessionStorage.tweakchain );
+    if ( !tweakchain[ tweakchain.length - 1 ][ "privkey" ] ) {
+      var current_privkey = tweakchain[ tweakchain.length - 2 ][ "privkey" ];
+    } else {
+      var current_privkey = tweakchain[ tweakchain.length - 1 ][ "privkey" ];      
+    }
+    var address = document.getElementById( "withdraw" ).value;
+    sendMoney( current_privkey, address, 200 );
+  });
+
+  document.getElementById( "clear-cookies" ).addEventListener( "click", function() {
+    sessionStorage.clear();
+    document.getElementById( "cookie-instructions" ).style.display = "none";
+    document.getElementById( "clear-cookies" ).style.display = "none";
+  });
+</script>
+
+<script>
+  function getNativeSegwitAddressFromPubkeyHex( pubkeyhex ) {
+          return bitcoinjs.payments.p2wpkh({ pubkey: buffer.Buffer.from( pubkeyhex, "hex" ), network: bitcoinjs.networks.testnet }).address;
+  }
+
+  function getNativeSegwitAddressFromPrivkeyHex( privkeyhex ) {
+          return bitcoinjs.payments.p2wpkh({ pubkey: bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( privkeyhex, "hex" ), { network: bitcoinjs.networks.testnet } ).publicKey, network: bitcoinjs.networks.testnet }).address;
+  }
+
+  function add2PubkeysAndReturnCompressedPubkeyOfResult( pubkey1, pubkey2 ) {
+          var combokey = nobleSecp256k1.Point.fromHex( pubkey1 ).add( nobleSecp256k1.Point.fromHex( pubkey2 ) ).toHex();
+          return bitcoinjs.ECPair.fromPublicKey( buffer.Buffer.from( combokey, "hex" ) ).publicKey.toString( "hex" );
+  }
+
+  function add2Privkeys( privkey1, privkey2 ) {
+          var combokey = ( ( BigInt( "0x" + privkey1 ) + BigInt( "0x" + privkey2 ) ) % BigInt( "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f" ) ).toString( 16 );
+          var padding = "0000000000000000000000000000000000000000000000000000000000000000";
+          padding = padding + combokey;
+          combokey = padding.slice( -64 );
+          return combokey;
+  }
+
+  function pushBTCpmt( rawtx ) {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+          if ( this.readyState == 4 && ( this.status == 200 || this.status == 201 ) ) {
+              var json = JSON.parse( this.responseText );
+              console.log( json );
+              alert( "Your move was added to bitcoin's mempool, your txid is: " + json[ "tx" ][ "hash" ] );
+          }
+      };
+      xhttp.open( "POST", "https://api.blockcypher.com/v1/btc/test3/txs/push", true );
+      xhttp.setRequestHeader( "Content-type", "text/plain" );
+      xhttp.send( '{"tx":"' + rawtx + '"}' );
+  }
+
+  function utf8ToHex( str ) {
+      var result = '';
+      for (var i=0; i<str.length; i++) {
+        result += str.charCodeAt( i ).toString( 16 );
+      }
+      return result;
+  }
+
+  function hexToUtf8( str ) {
+          var r = decodeURIComponent( str.replace( /\s+/g, '' ).replace( /[0-9a-f]{2}/g, '%$&' ) );
+          return r;
+  }
+
+  function highlighter( moves ) {
+      removeHighlighting();
+        moves.forEach( function( item ) {
+              var element = document.querySelectorAll('[data-square="' + item + '"]')[ 0 ];
+              if ( element.style.backgroundColor != "yellow" ) {
+                    element.style.backgroundColor = "yellow";
+                    element.style.outline = "3px solid #b58863";
+                    element.style.outlineOffset = "-7px";
+              }
+        });
+  };
+
+  function removeHighlighting() {
+      document.getElementById( "myBoard" ).firstChild.firstChild.childNodes.forEach( function( item ) {
+            item.childNodes.forEach( function( item2 ) {
+                  item2.style.removeProperty( "background-color" );
+                  item2.style.removeProperty( "outline" );
+            });
+      });
+  }
+
+  function getPubkeyFromMove( move, pubkeys ) {
+        var pubkey = "";
+        pubkeys.forEach( function( item ) {
+                if ( item[ 0 ] == move ) {
+                        pubkey = item[ 1 ];
+                }
+        });
+        return pubkey;
+  }
+
+  function getWifFromPrivkeyHex( privkeyhex ) {
+        return bitcoinjs.ECPair.fromPrivateKey( buffer.Buffer.from( privkeyhex, "hex" ), { network: bitcoinjs.networks.testnet } ).toWIF();
+  }
+
+  function sendCoins( senderPrivkeyWif, inputtxid, inputindex, frompubkey, fromamount, to, fee ) {
+      var toamount = fromamount - fee;
+      var psbt = new bitcoinjs.Psbt({ network: bitcoinjs.networks.testnet })
+          .addInput({
+              hash: inputtxid,
+              index: inputindex,
+              witnessUtxo: {
+                  script: buffer.Buffer.from( '0014' + bitcoinjs.crypto.ripemd160( bitcoinjs.crypto.sha256( buffer.Buffer.from( frompubkey, "hex" ) ) ).toString( 'hex' ), 'hex' ),
+                  value: fromamount,
+              },
+          })
+          .addOutput({
+              address: to,
+              value: toamount,
+          });
+          var keyPairSender = bitcoinjs.ECPair.fromWIF( senderPrivkeyWif, bitcoinjs.networks.testnet );
+          psbt.signInput( 0, keyPairSender );
+          psbt.validateSignaturesOfInput( 0 );
+          psbt.finalizeAllInputs();
+          pushBTCpmt( psbt.extractTransaction().toHex() );
+  }
+
+  function getIdOfTxThatSentMeMoney( address ) {
+        return new Promise( function( resolve, reject ) {
+              var xhttp = new XMLHttpRequest();
+              xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                        var json = JSON.parse( xhttp.responseText );
+                        if ( json[ "unconfirmed_txrefs" ] && json[ "unconfirmed_txrefs" ].length > 0 ) {
+                            var length = json[ "unconfirmed_txrefs" ].length;
+                            var txid = json[ "unconfirmed_txrefs" ][ length - 1 ][ "tx_hash" ];
+                            resolve( txid );
+                        }
+                        if ( json[ "txrefs" ] && json[ "txrefs" ].length > 0 ) {
+                            var length = json[ "txrefs" ].length;
+                            var txid = json[ "txrefs" ][ length - 1 ][ "tx_hash" ];
+                            resolve( txid );
+                        }
+                    }
+              };
+              xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/addrs/" + address, true );
+              xhttp.send();
+        });
+  }
+
+  function getOutputNumberOfTxThatSentMeMoney( address, txid ) {
+        return new Promise( function( resolve, reject ) {
+              var xhttp = new XMLHttpRequest();
+              xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                          var json = JSON.parse( xhttp.responseText );
+                          var i; for ( i=0; i<json[ "outputs" ].length; i++ ) {
+                                var j; for ( j=0; j<json[ "outputs" ][ i ][ "addresses" ].length; j++ ) {
+                                      if ( address == json[ "outputs" ][ i ][ "addresses" ][ j ] ) {
+                                            resolve( i );
+                                      }
+                                }
+                          }
+                    }
+              };
+              xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/txs/" + txid, true );
+              xhttp.send();
+        });
+  }
+
+  function getAmountOfTxThatSentMeMoney( address, txid ) {
+        return new Promise( function( resolve, reject ) {
+              var xhttp = new XMLHttpRequest();
+              xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                          var json = JSON.parse( xhttp.responseText );
+                          var i; for ( i=0; i<json[ "outputs" ].length; i++ ) {
+                                var j; for ( j=0; j<json[ "outputs" ][ i ][ "addresses" ].length; j++ ) {
+                                      if ( address == json[ "outputs" ][ i ][ "addresses" ][ j ] ) {
+                                            resolve( json[ "outputs" ][ i ][ "value" ] );
+                                      }
+                                }
+                          }
+                    }
+              };
+              xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/txs/" + txid, true );
+              xhttp.send();
+        });
+  }
+
+  async function sendMoney( fromprivkey, to, fee ) {
+          var fromaddress = getNativeSegwitAddressFromPrivkeyHex( fromprivkey );
+          var senderPrivkeyWif = getWifFromPrivkeyHex( fromprivkey );
+          var txid = await getIdOfTxThatSentMeMoney( fromaddress );
+          var outputnum = await getOutputNumberOfTxThatSentMeMoney( fromaddress, txid );
+          var frompubkey = getCompressedPubkeyHexFromPrivkeyHex( fromprivkey );
+          var fromamount = await getAmountOfTxThatSentMeMoney( fromaddress, txid );
+          sendCoins( senderPrivkeyWif, txid, outputnum, frompubkey, fromamount, to, fee );
+  }
+
+  window.daselector = async function ( item2 ) {
+      var chess = window.chess;
+      var amoves = [];
+      var turn = ( sessionStorage[ "turn" ] == "w" ) ? "w" : "b";
+      var mycolor = ( sessionStorage[ "mycolor" ] == "w" ) ? "white" : "black";
+      var i; for ( i=0; i<chess.moves({ verbose: true }).length; i++ ) {
+          amoves.push( chess.moves({ verbose: true })[ i ][ "from" ] + "-" + chess.moves({ verbose: true })[ i ][ "to" ] );
+      }
+      var selectedSquare = item2.getAttribute( "data-square" );
+      if ( item2.style.backgroundColor != "yellow" ) {
+          sessionStorage[ "selectedPiece" ] = item2.getAttribute( "data-square" );
+      } else if ( turn == sessionStorage[ "mycolor" ] ) {
+          var myaddress = document.getElementById( "my-address" ).value;
+          var doIHaveMoney = await didThisAddressEverHaveMoney( myaddress );
+          if ( !doIHaveMoney ) {
+            alert( "Please send some sats to your bitcoin address before playing. It is only to pay for transaction fees, you'll get it back when you're done. Moves cost 200 sats so 10k sats should be fine. This version of chess has a 50 move rule: if no one wins in 50 moves then the game is a draw." );
+            removeHighlighting();
+            return;
+          }
+          var thismove = sessionStorage[ "selectedPiece" ] + "-" + item2.getAttribute( "data-square" );
+          var movekey = "0000000000000000000000000000000000000000000000000000000000000000";
+          movekey += utf8ToHex( thismove );
+          movekey = movekey.slice( -64 );
+          var nextturn = ( sessionStorage[ "turn" ] == "w" ) ? "b" : "w";
+          var keycolor = ( sessionStorage[ "turn" ] == "w" ) ? "whitekey" : "blackkey";
+          var tweakchain = JSON.parse( sessionStorage.tweakchain );
+          console.log( "movekey:", movekey );
+          var current_privkey = tweakchain[ tweakchain.length - 2 ][ "privkey" ];
+          var tweaked_privkey = add2Privkeys( current_privkey, movekey );
+          var tweaked_pubkey = add2PubkeysAndReturnCompressedPubkeyOfResult( tweakchain[ tweakchain.length - 2 ][ "pubkey" ], getCompressedPubkeyHexFromPrivkeyHex( movekey ) );
+          var newkeypair = {}
+          newkeypair[ "privkey" ] = tweaked_privkey;
+          newkeypair[ "pubkey" ] = tweaked_pubkey;
+          console.log( newkeypair );
+          tweakchain.push( newkeypair );
+          sessionStorage[ "tweakchain" ] = JSON.stringify( tweakchain );
+          console.log( JSON.parse( sessionStorage[ "tweakchain" ] ) );
+          console.log( "tweaked pubkey:", add2PubkeysAndReturnCompressedPubkeyOfResult( JSON.parse( sessionStorage[ keycolor ] )[ "pubkey" ], getCompressedPubkeyHexFromPrivkeyHex( movekey ) ) );
+          console.log( "tweaked pubkey:", tweaked_pubkey );
+          console.log( "bitcoin address:", getNativeSegwitAddressFromPubkeyHex( add2PubkeysAndReturnCompressedPubkeyOfResult( JSON.parse( sessionStorage[ keycolor ] )[ "pubkey" ], getCompressedPubkeyHexFromPrivkeyHex( movekey ) ) ) );
+          console.log( "bitcoin address:", getNativeSegwitAddressFromPubkeyHex( tweaked_pubkey ) );
+          sendMoney( current_privkey, getNativeSegwitAddressFromPubkeyHex( tweaked_pubkey ), 200 );
+          chess.move({ from: sessionStorage[ "selectedPiece" ], to: item2.getAttribute( "data-square" ) });
+          sessionStorage[ "lastknownchessposition" ] = chess.fen();
+          var config = {
+              orientation: mycolor,
+              position: chess.fen()
+          }
+          Chessboard( 'myBoard', config );
+          sessionStorage[ "selectedPiece" ] = "none";
+          sessionStorage[ "turn" ] = nextturn;
+          prepBoard();
+      }
+      var selectedMoves = [];
+      var i; for ( i=0; i<amoves.length; i++ ) {
+          if ( selectedSquare == amoves[ i ].substring( 0, 2 ) ) {
+              selectedMoves.push( amoves[ i ].substring( 3, 5 ) );
+          }
+      }
+      if ( selectedMoves.length > 0 && turn == sessionStorage[ "mycolor" ] ) {
+          highlighter( selectedMoves );
+      } else {
+          removeHighlighting();
+      }
+  }
+
+  function prepBoard() {
+      if ( !sessionStorage[ "turn" ] ) {
+          sessionStorage[ "turn" ] = "w";
+      }
+      if ( !sessionStorage[ "mycolor" ] ) {
+          sessionStorage[ "mycolor" ] = "w";
+      }
+      document.getElementById( "myBoard" ).firstChild.firstChild.childNodes.forEach( function( item ) {
+              item.childNodes.forEach( function( item2 ) {
+                          if ( item2.getAttribute( "data-square" ) ) {
+                  var daselector = window.daselector.bind( null, item2 );
+                  item2.removeEventListener( "click", daselector );
+                  item2.addEventListener( "click", daselector );
+              }
+          });
+      });
+  }
+
+  function didThisAddressEverHaveMoney( address ) {
+      return new Promise( function( resolve, reject ) {
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+              if ( this.readyState == 4 && this.status == 200 ) {
+                  var json = JSON.parse( xhttp.responseText );
+                  if ( ( json[ "unconfirmed_txrefs" ] && json[ "unconfirmed_txrefs" ].length > 0 ) || ( json[ "txrefs" ] && json[ "txrefs" ].length > 0 ) ) {
+                      resolve( true );
+                  }
+                  resolve( false );
+              }
+          };
+          xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/addrs/" + address, true );
+          xhttp.send();
+      });
+  }
+
+  function didThisAddressEverSendMoney( address ) {
+      return new Promise( function( resolve, reject ) {
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+              if ( this.readyState == 4 && this.status == 200 ) {
+                  var json = JSON.parse( xhttp.responseText );
+                  if ( json[ "unconfirmed_txrefs" ] && json[ "unconfirmed_txrefs" ].length > 0 ) {
+                      var i; for ( i=0; i<json[ "unconfirmed_txrefs" ].length; i++ ) {
+                          if ( json[ "unconfirmed_txrefs" ][ i ][ "tx_input_n" ] > -1 ) {
+                              resolve( true );
+                          }
+                      }
+                  }
+                  if ( json[ "txrefs" ] && json[ "txrefs" ].length > 0 ) {
+                      var i; for ( i=0; i<json[ "txrefs" ].length; i++ ) {
+                          if ( json[ "txrefs" ][ i ][ "tx_input_n" ] > -1 ) {
+                              resolve( true );
+                          }
+                      }
+                  }
+                  resolve( false );
+              }
+          };
+          xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/addrs/" + address, true );
+          xhttp.send();
+      });
+  }
+
+  function ifThisAddressEverSentMoneyGetIdOfFirstTransactionItSentMoneyIn( address ) {
+      return new Promise( function( resolve, reject ) {
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+              if ( this.readyState == 4 && this.status == 200 ) {
+                  var json = JSON.parse( xhttp.responseText );
+                  if ( json[ "unconfirmed_txrefs" ] && json[ "unconfirmed_txrefs" ].length > 0 ) {
+                      var i; for ( i=0; i<json[ "unconfirmed_txrefs" ].length; i++ ) {
+                          if ( json[ "unconfirmed_txrefs" ][ i ][ "tx_input_n" ] > -1 ) {
+                              resolve( json[ "unconfirmed_txrefs" ][ i ][ "tx_hash" ] );
+                          }
+                      }
+                  }
+                  if ( json[ "txrefs" ] && json[ "txrefs" ].length > 0 ) {
+                      var i; for ( i=0; i<json[ "txrefs" ].length; i++ ) {
+                          if ( json[ "txrefs" ][ i ][ "tx_input_n" ] > -1 ) {
+                              resolve( json[ "txrefs" ][ i ][ "tx_hash" ] );
+                          }
+                      }
+                  }
+              }
+          };
+          xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/addrs/" + address, true );
+          xhttp.send();
+      });
+  }
+
+  function getAddressThatTxSentMoneyTo( txid ) {
+        return new Promise( function( resolve, reject ) {
+              var xhttp = new XMLHttpRequest();
+              xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                          var json = JSON.parse( xhttp.responseText );
+                          var i; for ( i=0; i<json[ "outputs" ].length; i++ ) {
+                              resolve( json[ "outputs" ][ i ][ "addresses" ][ 0 ] );
+                          }
+                    }
+              };
+              xhttp.open( "GET", "https://api.blockcypher.com/v1/btc/test3/txs/" + txid, true );
+              xhttp.send();
+        });
+  }
+
+  async function loopAndCheckAddress( address, i ) {
+    document.getElementById( "timer-info" ).style.display = "inline-block";
+    document.getElementById( "timer" ).innerText = ( 60 - i ).toString();
+    document.getElementById( "withdraw-instructions" ).style.display = "block";
+    document.getElementById( "withdraw" ).style.display = "block";
+    document.getElementById( "submit3" ).style.display = "block";
+    document.getElementById( "cookie-instructions" ).style.display = "none";
+    document.getElementById( "clear-cookies" ).style.display = "none";
+    document.getElementById( "opponents-pubkey-label" ).style.display = "none";
+    document.getElementById( "opponents-pubkey" ).style.display = "none";
+    if ( i == undefined ) {
+      i = 0;
+    }
+    if ( i == 60 ) {
+      var thisAddressOnceSentMoney = await didThisAddressEverSendMoney( address );
+      if ( !thisAddressOnceSentMoney ) {
+        console.log( address, "has not sent money" );
+        setTimeout( function() { loopAndCheckAddress( address, 0 ); }, 1000 );
+      } else {
+        var txid = await ifThisAddressEverSentMoneyGetIdOfFirstTransactionItSentMoneyIn( address );
+        var newaddress = await getAddressThatTxSentMoneyTo( txid );
+        setMove( newaddress );
+      }
+    } else {
+      i = i + 1;
+      setTimeout( function() { loopAndCheckAddress( address, i ); }, 1000 );
+    }
+  }
+
+  function setMove( address ) {
+    var lastchessboard = new Chess( sessionStorage[ "lastknownchessposition" ] );
+
+    var amoves = [];
+    var i; for ( i=0; i<lastchessboard.moves({ verbose: true }).length; i++ ) {
+            amoves.push( lastchessboard.moves({ verbose: true })[ i ][ "from" ] + "-" + lastchessboard.moves({ verbose: true })[ i ][ "to" ] );
+    }
+    console.log( amoves );
+
+    var movekeys = [];
+    var i; for ( i=0; i<amoves.length; i++ ) {
+        var movekey = "0000000000000000000000000000000000000000000000000000000000000000";
+        movekey += utf8ToHex( amoves[ i ] );
+        movekey = movekey.slice( -64 );
+        mkarray = [];
+        mkarray.push( amoves[ i ] );
+        mkarray.push( movekey );
+        movekeys.push( mkarray );
+    }
+    console.log( movekeys );
+
+    var keycolor = ( sessionStorage[ "turn" ] == "w" ) ? "whitekey" : "blackkey";
+    var opponentspubkey = JSON.parse( sessionStorage[ keycolor ] )[ "pubkey" ];
+    var tweakchain = JSON.parse( sessionStorage.tweakchain );
+    var altopponentspubkey = tweakchain[ tweakchain.length - 2 ][ "pubkey" ];
+    var tweakchain = JSON.parse( sessionStorage.tweakchain );
+    var storagelabel = ( sessionStorage[ "turn" ] == "w" ) ? "whitetweaks" : "blacktweaks";
+    var tweaked_pubkeys = [];
+    var i; for ( i=0; i<movekeys.length; i++ ) {
+            pubkey = add2PubkeysAndReturnCompressedPubkeyOfResult( altopponentspubkey, getCompressedPubkeyHexFromPrivkeyHex( movekeys[ i ][ 1 ] ) );
+        pubkeyarray = [];
+        pubkeyarray.push( movekeys[ i ][ 0 ] );
+        pubkeyarray.push( pubkey );
+        tweaked_pubkeys.push( pubkeyarray );
+    }
+    console.log( tweaked_pubkeys );
+    sessionStorage[ storagelabel ] = JSON.stringify( tweaked_pubkeys );
+
+    var pubkeys = JSON.parse( sessionStorage[ storagelabel ] );
+    var addresses = [];
+    var i; for ( i=0; i<pubkeys.length; i++ ) {
+        addressarray = [];
+        addressarray.push( pubkeys[ i ][ 0 ], getNativeSegwitAddressFromPubkeyHex( pubkeys[ i ][ 1 ] ) );
+        addresses.push( addressarray );
+    }
+    addresses.push( [ "forfeit", "forfeit" ] );
+    console.log( addresses );
+
+    var turn = ( sessionStorage[ "turn" ] == "w" ) ? "w" : "b";
+    var nextturn = ( sessionStorage[ "turn" ] == "w" ) ? "b" : "w";
+    var mycolor = ( sessionStorage[ "mycolor" ] == "w" ) ? "white" : "black";
+    addresses.forEach( function( item, index ) {
+        if ( index == addresses.length - 1 && sessionStorage[ "turn" ] == turn ) {
+            alert( "Congratulations, you win! Your opponent forfeited." );
+        }
+        if ( item[ 1 ] == address ) {
+            var tweaked_privkey = "";
+            var tweaked_pubkey = getPubkeyFromMove( item[ 0 ], JSON.parse( sessionStorage[ storagelabel ] ) );
+            var tweakchain = JSON.parse( sessionStorage.tweakchain );
+            var newkeypair = {}
+            newkeypair[ "privkey" ] = tweaked_privkey;
+            newkeypair[ "pubkey" ] = tweaked_pubkey;
+            console.log( newkeypair );
+            tweakchain.push( newkeypair );
+            sessionStorage[ "tweakchain" ] = JSON.stringify( tweakchain );
+            chess.move( { from: item[ 0 ].substring( 0, 2 ), to: item[ 0 ].substring( 3, 5 ) } );
+            sessionStorage[ "lastknownchessposition" ] = chess.fen();
+            var config = {
+                    orientation: mycolor,
+                    position: chess.fen()
+            }
+            Chessboard( 'myBoard', config );
+            sessionStorage[ "selectedPiece" ] = "none";
+            sessionStorage[ "turn" ] = nextturn;
+            prepBoard();
+            console.log( item[ 0 ] );
+            loopAndCheckAddress( address, 0 );
+        }
+    });
+  }
+</script>
+
+</body>
+</html>
