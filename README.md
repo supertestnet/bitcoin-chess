@@ -1,5 +1,5 @@
 # Bitcoin Chess
-Play a game of chess and store every move on bitcoin's blockchain. An educational experiment with key tweaking.
+Play a game of chess and signal every move in a bitcoin transaction. An educational experiment with key tweaking.
 
 # How to play
 
