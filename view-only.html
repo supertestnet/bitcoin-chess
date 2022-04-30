@@ -457,8 +457,8 @@
     document.getElementById( "current-pubkey" ).value = altopponentspubkey;
     sessionStorage[ "play-found" ] = 2;
     addresses.forEach( function( item, index ) {
-        if ( index == addresses.length - 1 ) {
-            alert( current_player + " forfeited." && Number( sessionStorage[ "play-found" ] ) == 2 );
+        if ( index == addresses.length - 1 && Number( sessionStorage[ "play-found" ] ) == 2 ) {
+            alert( current_player + " forfeited." );
         }
         if ( item[ 1 ] == address ) {
             sessionStorage[ "play-found" ] = 3;
