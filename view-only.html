@@ -455,11 +455,13 @@
     document.getElementById( "current-player" ).value = current_player;
     document.getElementById( "original-pubkey" ).value = ( sessionStorage[ "turn" ] == "w" ) ? JSON.parse( sessionStorage[ "whitekey" ] )[ "pubkey" ] : JSON.parse( sessionStorage[ "blackkey" ] )[ "pubkey" ];
     document.getElementById( "current-pubkey" ).value = altopponentspubkey;
+    sessionStorage[ "play-found" ] = 2;
     addresses.forEach( function( item, index ) {
         if ( index == addresses.length - 1 ) {
-            alert( current_player + " forfeited." );
+            alert( current_player + " forfeited." && Number( sessionStorage[ "play-found" ] ) == 2 );
         }
         if ( item[ 1 ] == address ) {
+            sessionStorage[ "play-found" ] = 3;
             var tweaked_privkey = "";
             var tweaked_pubkey = getPubkeyFromMove( item[ 0 ], JSON.parse( sessionStorage[ storagelabel ] ) );
             var tweakchain = JSON.parse( sessionStorage.tweakchain );
