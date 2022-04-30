@@ -451,10 +451,14 @@
 
     var turn = ( sessionStorage[ "turn" ] == "w" ) ? "w" : "b";
     var nextturn = ( sessionStorage[ "turn" ] == "w" ) ? "b" : "w";
-    document.getElementById( "current-player" ).value = ( sessionStorage[ "turn" ] == "w" ) ? "White" : "Black";
+    var current_player = ( sessionStorage[ "turn" ] == "w" ) ? "White" : "Black";
+    document.getElementById( "current-player" ).value = current_player;
     document.getElementById( "original-pubkey" ).value = ( sessionStorage[ "turn" ] == "w" ) ? JSON.parse( sessionStorage[ "whitekey" ] )[ "pubkey" ] : JSON.parse( sessionStorage[ "blackkey" ] )[ "pubkey" ];
     document.getElementById( "current-pubkey" ).value = altopponentspubkey;
     addresses.forEach( function( item, index ) {
+        if ( index == addresses.length - 1 ) {
+            alert( current_player + " forfeited." );
+        }
         if ( item[ 1 ] == address ) {
             var tweaked_privkey = "";
             var tweaked_pubkey = getPubkeyFromMove( item[ 0 ], JSON.parse( sessionStorage[ storagelabel ] ) );
