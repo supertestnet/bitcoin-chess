@@ -7,6 +7,12 @@ Go here and follow the instructions: https://supertestnet.github.io/bitcoin-ches
 
 You'll need to give your pubkey to the other player and enter their pubkey when they give it to you. You'll also need some testnet coins. Get some here: [https://bitcoinfaucet.uo1.net/](https://bitcoinfaucet.uo1.net/) About 10,000 sats should be enough for a full game of chess.
 
+# View Only Mode
+
+Go here and follow the instructions: https://supertestnet.github.io/bitcoin-chess/view-only.html
+
+You'll need the pubkeys of both players and the page will show you detailed information about the state changes that occur during each player's turn. I hope it is especially useful for learning how key tweaking works.
+
 # Inspiration
 
 In [this blog post](https://rubin.io/bitcoin/2021/12/14/advent-17/) Jeremy Rubin featured an ethereum-based chess game and raised the question, "Why isn’t [its inventor] working on Bitcoin?" It made me wonder if chess logic can be implemented in bitcoin like it can in eth. Later, Lightning Labs announced [taro](https://lightning.engineering/posts/2022-4-5-taro-launch/) which uses key tweaking to hide non-bitcoin tokens inside bitcoin pubkeys. It made me want to illustrate how key tweaking works so that other developers can make other cool things. These two inspirations (chess on eth & key tweaking in taro) were the seeds of Bitcoin Chess.
