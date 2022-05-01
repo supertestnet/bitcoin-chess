@@ -11,7 +11,13 @@ You'll need to give your pubkey to the other player and enter their pubkey when 
 
 Go here and follow the instructions: https://supertestnet.github.io/bitcoin-chess/view-only.html
 
-You'll need the pubkeys of both players and the page will show you detailed information about the state changes that occur during each player's turn. I hope it is especially useful for learning how key tweaking works.
+You'll need the pubkeys of two players, here are two pubkeys where you can see a complete but very short game:
+
+`White: 0295e649154ce7847bd4b15eb9c5d7b6fcd6115c3c1ab64917779e02bf0af9d3c8`
+
+`Black: 031468a15fd02ba8f0e3138859b1a9393bbee874521b3116f888e4b50f15c99314`
+
+If you enter those pubkeys (or other players' pubkeys) on the View-Only page, it will show you detailed information about the state changes that occurred during each player's turn. I hope it is especially useful for learning how key tweaking works.
 
 # Inspiration
 
