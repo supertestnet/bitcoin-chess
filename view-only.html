@@ -46,6 +46,10 @@
   <textarea id="tweaked_pubkeys"></textarea>
   <p id="addresses-label">Bitcoin addresses (the bitcoin address that corresponds to each tweaked pubkey -- the player must send his money to one of these or forfeit)</p>
   <textarea id="addresses"></textarea>
+  <p id="white-tx-label">White's most recent transaction (the one that got him or her to this point)</p>
+  <p><input type="text" placeholder="white's most recent bitcoin transaction" id="whites-tx" name="whites-tx" style="width: 100%;" /></p>
+  <p id="black-tx-label">Black's most recent transaction (the one that got him or her to this point)</p>
+  <p><input type="text" placeholder="black's most recent bitcoin transaction" id="blacks-tx" name="blacks-tx" style="width: 100%;" /></p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -91,6 +95,13 @@
   async function getNextAddressGivenPubkey( pubkey ) {
     var firstaddress = getNativeSegwitAddressFromPubkeyHex( pubkey );
     var nexttx = await ifThisAddressEverSentMoneyGetIdOfFirstTransactionItSentMoneyIn( firstaddress );
+    if ( nexttx ) 
+      if ( sessionStorage[ "turn" ] == "w" ) {
+        document.getElementById( "whites-tx" ).value = nexttx;
+      } else {
+        document.getElementById( "blacks-tx" ).value = nexttx;
+      }
+    }
     var destino = await getAddressThatTxSentMoneyTo( nexttx );
     setMove( destino );
   }
