@@ -95,11 +95,11 @@
   async function getNextAddressGivenPubkey( pubkey ) {
     var firstaddress = getNativeSegwitAddressFromPubkeyHex( pubkey );
     var nexttx = await ifThisAddressEverSentMoneyGetIdOfFirstTransactionItSentMoneyIn( firstaddress );
-    if ( nexttx ) 
+    if ( nexttx ) {
       if ( sessionStorage[ "turn" ] == "w" ) {
-        document.getElementById( "whites-tx" ).value = nexttx;
+        fillWhiteTxBox( nexttx );
       } else {
-        document.getElementById( "blacks-tx" ).value = nexttx;
+        fillBlackTxBox( nexttx );
       }
     }
     var destino = await getAddressThatTxSentMoneyTo( nexttx );
@@ -510,13 +510,17 @@
   document.getElementById( "original-pubkey" ).value = "";
   document.getElementById( "current-pubkey" ).value = "";
   
-  async function fillWhiteTxBox() {
-    var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "whites-pubkey" ).value ) );
+  async function fillWhiteTxBox( txid ) {
+    if ( !txid ) {
+      var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "whites-pubkey" ).value ) );
+    }
     document.getElementById( "whites-tx" ).value = txid;
   }
 
-  async function fillBlackTxBox() {
-    var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "blacks-pubkey" ).value ) );
+  async function fillBlackTxBox( txid ) {
+    if ( !txid ) {
+      var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "blacks-pubkey" ).value ) );
+    }
     document.getElementById( "blacks-tx" ).value = txid;
   }
 </script>
