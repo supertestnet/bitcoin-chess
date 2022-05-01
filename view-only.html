@@ -69,11 +69,17 @@
     var tweakchain = JSON.parse( sessionStorage.tweakchain );
     var pubkey = tweakchain[ tweakchain.length - 2 ][ "pubkey" ];
     var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( pubkey ) );
+		console.log( "test1" );
     if ( txid ) {
+			console.log( "test2" );
       if ( sessionStorage[ "turn" ] == "w" ) {
+				console.log( "test3" );
         fillWhiteTxBox( txid );
+				console.log( "test4" );
       } else {
+				console.log( "test5" );
         fillBlackTxBox( txid );
+				console.log( "test6" );
       }
     }
     console.log( pubkey );
@@ -521,17 +527,23 @@
   document.getElementById( "current-pubkey" ).value = "";
   
   async function fillWhiteTxBox( txid ) {
+		console.log( "another test 1", txid );
     if ( !txid ) {
       var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "whites-pubkey" ).value ) );
     }
+		console.log( "another test 2", txid );
     document.getElementById( "whites-tx" ).value = txid;
+		console.log( "another test 3", txid );
   }
 
   async function fillBlackTxBox( txid ) {
+		console.log( "another test 4", txid );
     if ( !txid ) {
       var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "blacks-pubkey" ).value ) );
     }
+		console.log( "another test 5", txid );
     document.getElementById( "blacks-tx" ).value = txid;
+		console.log( "another test 6", txid );
   }
 </script>
 
