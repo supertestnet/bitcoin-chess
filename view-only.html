@@ -68,22 +68,24 @@
   async function takeForwardStep() {
     var tweakchain = JSON.parse( sessionStorage.tweakchain );
     var pubkey = tweakchain[ tweakchain.length - 2 ][ "pubkey" ];
+    console.log( pubkey );
+    await getNextAddressGivenPubkey( pubkey );
+    var tweakchain = JSON.parse( sessionStorage.tweakchain );
+    var pubkey = tweakchain[ tweakchain.length - 2 ][ "pubkey" ];
     var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( pubkey ) );
-		console.log( "test1" );
+    console.log( "test1" );
     if ( txid ) {
-			console.log( "test2" );
+      console.log( "test2" );
       if ( sessionStorage[ "turn" ] == "w" ) {
-				console.log( "test3" );
+        console.log( "test3" );
         fillWhiteTxBox( txid );
-				console.log( "test4" );
+        console.log( "test4" );
       } else {
-				console.log( "test5" );
+        console.log( "test5" );
         fillBlackTxBox( txid );
-				console.log( "test6" );
+        console.log( "test6" );
       }
     }
-    console.log( pubkey );
-    getNextAddressGivenPubkey( pubkey );
   }
   async function takeBackwardStep() {
     var movechain = JSON.parse( sessionStorage[ "movechain" ] );
