@@ -1,6 +1,10 @@
 # Bitcoin Chess
 Play a game of chess and signal every move in a bitcoin transaction. An educational experiment with key tweaking.
 
+# Video demo
+
+[![](https://i.ibb.co/n3Rr0m9/bitcoin-chess.png)](https://www.youtube.com/watch?v=FHwgr8gzzT0)
+
 # How to play
 
 Go here and follow the instructions: https://supertestnet.github.io/bitcoin-chess/bitcoin-chess.html
