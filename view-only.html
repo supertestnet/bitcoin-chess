@@ -208,12 +208,15 @@
     document.getElementById( "submit" ).style.display = "none";
     document.getElementById( "prev-move" ).style.display = "inline";
     document.getElementById( "next-move" ).style.display = "inline";
+    fillWhiteTxBox();
+    fillBlackTxBox();
     setData();
   });
 
   document.getElementById( "next-move" ).addEventListener( "click", function() {
     takeForwardStep();
   });
+  
   document.getElementById( "prev-move" ).addEventListener( "click", function() {
     takeBackwardStep();
   });
@@ -506,6 +509,16 @@
   document.getElementById( "current-player" ).value = "";
   document.getElementById( "original-pubkey" ).value = "";
   document.getElementById( "current-pubkey" ).value = "";
+  
+  async function fillWhiteTxBox() {
+    var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "whites-pubkey" ).value ) );
+    document.getElementById( "whites-tx" ).value = txid;
+  }
+
+  async function fillBlackTxBox() {
+    var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( document.getElementById( "blacks-pubkey" ).value ) );
+    document.getElementById( "blacks-tx" ).value = txid;
+  }
 </script>
 
 </body>
