@@ -104,10 +104,10 @@
     sessionStorage[ "tweakchain" ] = JSON.stringify( tweakchain );
     var prevturn = ( sessionStorage[ "turn" ] == "w" ) ? "b" : "w";
     sessionStorage[ "turn" ] = prevturn;
-    var pubkey = tweakchain[ tweakchain.length - 1 ][ "pubkey" ];
+    var pubkey = tweakchain[ tweakchain.length - 2 ][ "pubkey" ];
     var txid = await getIdOfTxThatSentMeMoney( getNativeSegwitAddressFromPubkeyHex( pubkey ) );
     if ( txid ) {
-      if ( sessionStorage[ "turn" ] == "b" ) {
+      if ( sessionStorage[ "turn" ] == "w" ) {
         fillWhiteTxBox( txid );
       } else {
         fillBlackTxBox( txid );
