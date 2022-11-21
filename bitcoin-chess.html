@@ -510,7 +510,7 @@ function getAmountOfTxThatSentMeMoney( address, txid ) {
                 xhttp.onreadystatechange = function() {
                     if ( this.readyState == 4 && this.status == 200 ) {
                         var json = JSON.parse( xhttp.responseText );
-                        if ( json[ "chain_stats" ][ "funded_txo_count" ] > 0 ) {
+                        if ( json[ "chain_stats" ][ "funded_txo_count" ] > 0 || json[ "mempool_stats" ][ "funded_txo_count" ] > 0 ) {
                             resolve( true );
                         }
                         resolve( false );
