@@ -163,19 +163,17 @@
   }
 
   function pushBTCpmt( rawtx ) {
-      var xhttp = new XMLHttpRequest();
-      xhttp.onreadystatechange = function() {
-          if ( this.readyState == 4 && ( this.status == 200 || this.status == 201 ) ) {
-              var json = JSON.parse( this.responseText );
-              console.log( json );
-              alert( "Your move was added to bitcoin's mempool, your txid is: " + json[ "tx" ][ "hash" ] );
-          }
-      };
-      xhttp.open( "POST", "https://api.blockcypher.com/v1/btc/test3/txs/push", true );
-      xhttp.setRequestHeader( "Content-type", "text/plain" );
-      xhttp.send( '{"tx":"' + rawtx + '"}' );
+          var xhttp = new XMLHttpRequest();
+          xhttp.onreadystatechange = function() {
+                  if ( this.readyState == 4 && ( this.status > 199 && this.status < 300 ) ) {
+                          var response = this.responseText;
+                          console.log( "Your transaction was broadcasted, your txid is: " + response );
+                  }
+          };
+          xhttp.open( "POST", "https://mempool.space/api/tx", true );
+          xhttp.send( rawtx );
   }
-
+  
   function utf8ToHex( str ) {
       var result = '';
       for (var i=0; i<str.length; i++) {
@@ -246,6 +244,8 @@
           pushBTCpmt( psbt.extractTransaction().toHex() );
   }
 
+/*
+  
   function getIdOfTxThatSentMeMoney( address ) {
         return new Promise( function( resolve, reject ) {
               var xhttp = new XMLHttpRequest();
@@ -268,7 +268,36 @@
               xhttp.send();
         });
   }
-
+  
+*/
+  
+        async function getIdOfTxThatSentMeMoney( address ) {
+            return new Promise( function( resolve, reject ) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                        var json = JSON.parse( xhttp.responseText );
+                        json.reverse();
+                        var counter = 0;
+                        json.forEach( function( tx ) {
+                            tx[ "vout" ].forEach( function( vout ) {
+                                if ( counter == 0 ) {
+                                    if ( "scriptpubkey_address" in vout && vout[ "scriptpubkey_address" ] == address ) {
+                                          resolve( tx[ "txid" ] );
+                                          counter = counter + 1;
+                                    }
+                                }
+                            });
+                        });
+                        resolve( "none" );
+                    }
+                };
+                xhttp.open( "GET", "https://blockstream.info/testnet/api/address/" + address + "/txs", true );
+                xhttp.send();
+            });
+        }
+  
+/*
   function getOutputNumberOfTxThatSentMeMoney( address, txid ) {
         return new Promise( function( resolve, reject ) {
               var xhttp = new XMLHttpRequest();
@@ -288,8 +317,36 @@
               xhttp.send();
         });
   }
+  
+*/
 
-  function getAmountOfTxThatSentMeMoney( address, txid ) {
+        function getOutputNumberOfTxThatSentMeMoney( address, txid ) {
+            return new Promise( function( resolve, reject ) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                        var json = JSON.parse( xhttp.responseText );
+                        json.reverse();
+                        var counter = 0;
+                        json.forEach( function( tx ) {
+                            tx[ "vout" ].forEach( function( vout, index ) {
+                                if ( counter == 0 ) {
+                                    if ( "scriptpubkey_address" in vout && vout[ "scriptpubkey_address" ] == address ) {
+                                          resolve( index );
+                                          counter = counter + 1;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                };
+                xhttp.open( "GET", "https://blockstream.info/testnet/api/address/" + address + "/txs", true );
+                xhttp.send();
+            });
+        }
+  
+/*
+function getAmountOfTxThatSentMeMoney( address, txid ) {
         return new Promise( function( resolve, reject ) {
               var xhttp = new XMLHttpRequest();
               xhttp.onreadystatechange = function() {
@@ -308,6 +365,32 @@
               xhttp.send();
         });
   }
+  */
+  
+          function getAmountOfTxThatSentMeMoney( address, txid ) {
+            return new Promise( function( resolve, reject ) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                        var json = JSON.parse( xhttp.responseText );
+                        json.reverse();
+                        var counter = 0;
+                        json.forEach( function( tx ) {
+                            tx[ "vout" ].forEach( function( vout ) {
+                                if ( counter == 0 ) {
+                                    if ( "scriptpubkey_address" in vout && vout[ "scriptpubkey_address" ] == address ) {
+                                          resolve( vout[ "value" ] );
+                                          counter = counter + 1;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                };
+                xhttp.open( "GET", "https://blockstream.info/testnet/api/address/" + address + "/txs", true );
+                xhttp.send();
+            });
+        }
 
   async function sendMoney( fromprivkey, to, fee ) {
           var fromaddress = getNativeSegwitAddressFromPrivkeyHex( fromprivkey );
@@ -402,7 +485,7 @@
           });
       });
   }
-
+/*
   function didThisAddressEverHaveMoney( address ) {
       return new Promise( function( resolve, reject ) {
           var xhttp = new XMLHttpRequest();
@@ -419,7 +502,25 @@
           xhttp.send();
       });
   }
-
+*/
+  
+        function didThisAddressEverHaveMoney( address ) {
+            return new Promise( function( resolve, reject ) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                        var json = JSON.parse( xhttp.responseText );
+                        if ( json[ "chain_stats" ][ "funded_txo_count" ] > 0 ) {
+                            resolve( true );
+                        }
+                        resolve( false );
+                    }
+                };
+                xhttp.open( "GET", "https://blockstream.info/testnet/api/address/" + address, true );
+                xhttp.send();
+            });
+        }
+  /*
   function didThisAddressEverSendMoney( address ) {
       return new Promise( function( resolve, reject ) {
           var xhttp = new XMLHttpRequest();
@@ -447,7 +548,24 @@
           xhttp.send();
       });
   }
-
+*/
+        function didThisAddressEverSendMoney( address ) {
+            return new Promise( function( resolve, reject ) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if ( this.readyState == 4 && this.status == 200 ) {
+                        var json = JSON.parse( xhttp.responseText );
+                        if ( json[ "chain_stats" ][ "spent_txo_count" ] > 0 || json[ "mempool_stats" ][ "spent_txo_count" ] > 0 ) {
+                            resolve( true );
+                        }
+                        resolve( false );
+                    }
+                };
+                xhttp.open( "GET", "https://blockstream.info/testnet/api/address/" + address, true );
+                xhttp.send();
+            });
+        }
+  
   function ifThisAddressEverSentMoneyGetIdOfFirstTransactionItSentMoneyIn( address ) {
       return new Promise( function( resolve, reject ) {
           var xhttp = new XMLHttpRequest();
